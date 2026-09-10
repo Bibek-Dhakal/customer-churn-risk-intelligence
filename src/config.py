@@ -1,19 +1,29 @@
 from pathlib import Path
 
+# Project root
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-DATA_DIR = PROJECT_ROOT / "data"
-RAW_DIR = DATA_DIR / "raw"
-PROCESSED_DIR = DATA_DIR / "processed"
-ARTIFACT_DIR = PROJECT_ROOT / "artifacts"
+# Data paths
+RAW_DATA_PATH = (
+        PROJECT_ROOT
+        / "data"
+        / "raw"
+        / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+)
 
-TRAIN_PATH = RAW_DIR / "train.csv"
-TEST_PATH = RAW_DIR / "test.csv"
+# Output paths
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
+PREDICTIONS_PATH = ARTIFACTS_DIR / "predictions.csv"
+MODEL_COMPARISON_PATH = ARTIFACTS_DIR / "model_comparison.csv"
+SELECTED_MODEL_PATH = ARTIFACTS_DIR / "selected_model.joblib"
+RUN_METADATA_PATH = ARTIFACTS_DIR / "run_metadata.json"
+
+# Reproducibility
+RANDOM_STATE = 42
+TEST_SIZE = 0.20
+CV_FOLDS = 5
+
+# Target / identifier
 TARGET_COLUMN = "Churn"
-ID_COLUMN = "id"
-
-RANDOM_STATE = 2026
-CV_SPLITS = 5
-
-ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+ID_COLUMN = "customerID"

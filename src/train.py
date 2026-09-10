@@ -1,135 +1,231 @@
-from __future__ import annotations
-
 import json
 
 import joblib
 import pandas as pd
-
-from .config import (
-    ARTIFACT_DIR,
-    ID_COLUMN,
-    RANDOM_STATE,
-    TARGET_COLUMN,
-    TEST_PATH,
-    TRAIN_PATH,
-    CV_SPLITS,
+from sklearn.model_selection import (
+    StratifiedKFold,
+    cross_validate,
+    train_test_split,
 )
-from .modeling import build_candidates, cross_validate_candidates
 
-
-def normalize_target(series: pd.Series) -> pd.Series:
-    values = (
-        series.astype(str)
-        .str.strip()
-        .str.lower()
-    )
-
-    mapping = {
-        "yes": 1,
-        "no": 0,
-        "1": 1,
-        "0": 0,
-    }
-
-    converted = values.map(mapping)
-
-    if converted.isna().any():
-        bad = sorted(values[converted.isna()].unique())
-        raise ValueError(
-            f"Unsupported target values: {bad}"
-        )
-
-    return converted.astype(int)
+from src.config import (
+    ARTIFACTS_DIR,
+    CV_FOLDS,
+    ID_COLUMN,
+    MODEL_COMPARISON_PATH,
+    PREDICTIONS_PATH,
+    RANDOM_STATE,
+    RAW_DATA_PATH,
+    RUN_METADATA_PATH,
+    SELECTED_MODEL_PATH,
+    TARGET_COLUMN,
+    TEST_SIZE,
+)
+from src.features import add_features
+from src.modeling import build_candidates, evaluate_predictions
+from src.validate_data import load_prepared_data
 
 
 def main():
-    train = pd.read_csv(TRAIN_PATH)
-    test = pd.read_csv(TEST_PATH)
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    y = normalize_target(train[TARGET_COLUMN])
+    # ------------------------------------------------------------------
+    # Load and prepare the single source dataset.
+    # ------------------------------------------------------------------
+    df = load_prepared_data(RAW_DATA_PATH)
 
-    X = train.drop(columns=[TARGET_COLUMN])
-    X_test = test.copy()
+    # ------------------------------------------------------------------
+    # Feature engineering.
+    # ------------------------------------------------------------------
+    df = add_features(df)
 
-    if ID_COLUMN in X.columns:
-        X = X.drop(columns=[ID_COLUMN])
+    # ------------------------------------------------------------------
+    # Separate identifier, target, and predictors.
+    # ------------------------------------------------------------------
+    customer_ids = df[ID_COLUMN].copy()
 
-    if ID_COLUMN in X_test.columns:
-        X_test = X_test.drop(columns=[ID_COLUMN])
-
-    candidates = build_candidates(X)
-
-    comparison = cross_validate_candidates(
-        X=X,
-        y=y,
-        candidates=candidates,
-        cv=CV_SPLITS,
+    X = df.drop(
+        columns=[TARGET_COLUMN, ID_COLUMN]
     )
 
-    mean_scores = (
-        comparison[comparison["fold"] == "mean"]
-        .sort_values("roc_auc", ascending=False)
+    y = df[TARGET_COLUMN]
+
+    # ------------------------------------------------------------------
+    # Reproducible stratified train/test split.
+    # ------------------------------------------------------------------
+    X_train, X_test, y_train, y_test, ids_train, ids_test = (
+        train_test_split(
+            X,
+            y,
+            customer_ids,
+            test_size=TEST_SIZE,
+            stratify=y,
+            random_state=RANDOM_STATE,
+        )
+    )
+
+    # ------------------------------------------------------------------
+    # Candidate models.
+    # ------------------------------------------------------------------
+    candidates = build_candidates(
+        X_train,
+        random_state=RANDOM_STATE,
+    )
+
+    cv = StratifiedKFold(
+        n_splits=CV_FOLDS,
+        shuffle=True,
+        random_state=RANDOM_STATE,
+    )
+
+    scoring = {
+        "roc_auc": "roc_auc",
+        "average_precision": "average_precision",
+        "neg_log_loss": "neg_log_loss",
+        "accuracy": "accuracy",
+    }
+
+    results = []
+
+    # ------------------------------------------------------------------
+    # Cross-validation model comparison.
+    # ------------------------------------------------------------------
+    for name, pipeline in candidates.items():
+        cv_results = cross_validate(
+            pipeline,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring=scoring,
+            n_jobs=-1,
+        )
+
+        results.append(
+            {
+                "Model": name,
+                "CV_ROC_AUC_Mean": cv_results[
+                    "test_roc_auc"
+                ].mean(),
+                "CV_ROC_AUC_Std": cv_results[
+                    "test_roc_auc"
+                ].std(),
+                "CV_Average_Precision_Mean": cv_results[
+                    "test_average_precision"
+                ].mean(),
+                "CV_Log_Loss_Mean": -cv_results[
+                    "test_neg_log_loss"
+                ].mean(),
+                "CV_Accuracy_Mean": cv_results[
+                    "test_accuracy"
+                ].mean(),
+            }
+        )
+
+    comparison = (
+        pd.DataFrame(results)
+        .sort_values(
+            "CV_ROC_AUC_Mean",
+            ascending=False,
+        )
         .reset_index(drop=True)
     )
 
-    if mean_scores.empty:
-        raise RuntimeError("No model comparison results were produced.")
+    comparison.to_csv(
+        MODEL_COMPARISON_PATH,
+        index=False,
+    )
 
-    selected_name = str(mean_scores.iloc[0]["model"])
-    selected_model = candidates[selected_name]
+    # ------------------------------------------------------------------
+    # Select the model with the strongest mean CV ROC-AUC.
+    # ------------------------------------------------------------------
+    best_model_name = comparison.iloc[0]["Model"]
 
-    selected_model.fit(X, y)
+    best_model = candidates[best_model_name]
 
-    probabilities = selected_model.predict_proba(X_test)[:, 1]
+    best_model.fit(
+        X_train,
+        y_train,
+    )
 
+    # ------------------------------------------------------------------
+    # Evaluate on untouched test data.
+    # ------------------------------------------------------------------
+    test_probabilities = best_model.predict_proba(
+        X_test
+    )[:, 1]
+
+    test_metrics = evaluate_predictions(
+        y_test,
+        test_probabilities,
+    )
+
+    # ------------------------------------------------------------------
+    # Save customer-level predictions.
+    # ------------------------------------------------------------------
     predictions = pd.DataFrame(
         {
-            ID_COLUMN: test[ID_COLUMN],
-            TARGET_COLUMN: probabilities,
+            ID_COLUMN: ids_test.values,
+            "ActualChurn": y_test.values,
+            "ChurnProbability": test_probabilities,
+            "PredictedChurn": (
+                    test_probabilities >= 0.5
+            ).astype(int),
         }
     )
 
-    comparison.to_csv(
-        ARTIFACT_DIR / "model_comparison.csv",
-        index=False,
-    )
-
     predictions.to_csv(
-        ARTIFACT_DIR / "predictions.csv",
+        PREDICTIONS_PATH,
         index=False,
     )
 
+    # ------------------------------------------------------------------
+    # Save selected model.
+    # ------------------------------------------------------------------
     joblib.dump(
-        selected_model,
-        ARTIFACT_DIR / "selected_model.joblib",
+        best_model,
+        SELECTED_MODEL_PATH,
     )
 
+    # ------------------------------------------------------------------
+    # Save run metadata.
+    # ------------------------------------------------------------------
     metadata = {
-        "selected_model": selected_name,
+        "dataset": RAW_DATA_PATH.name,
+        "total_rows": int(df.shape[0]),
+        "total_columns": int(df.shape[1]),
+        "train_rows": int(X_train.shape[0]),
+        "test_rows": int(X_test.shape[0]),
+        "test_size": TEST_SIZE,
         "random_state": RANDOM_STATE,
-        "cv_splits": CV_SPLITS,
-        "training_rows": int(len(X)),
-        "test_rows": int(len(X_test)),
+        "cv_folds": CV_FOLDS,
         "target": TARGET_COLUMN,
+        "selected_model": best_model_name,
+        "test_metrics": {
+            key: float(value)
+            for key, value in test_metrics.items()
+        },
     }
 
-    (ARTIFACT_DIR / "run_metadata.json").write_text(
-        json.dumps(metadata, indent=2),
-        encoding="utf-8",
-    )
+    with open(
+            RUN_METADATA_PATH,
+            "w",
+            encoding="utf-8",
+    ) as file:
+        json.dump(
+            metadata,
+            file,
+            indent=2,
+        )
 
-    print("\nModel comparison:")
-    print(
-        mean_scores[
-            ["model", "roc_auc"]
-        ].to_string(index=False)
-    )
+    print("\nTraining completed successfully.")
+    print(f"Dataset: {RAW_DATA_PATH.name}")
+    print(f"Training rows: {len(X_train):,}")
+    print(f"Test rows: {len(X_test):,}")
+    print(f"Selected model: {best_model_name}")
 
-    print(f"\nSelected model: {selected_name}")
-    print(
-        f"Prediction file: "
-        f"{ARTIFACT_DIR / 'predictions.csv'}"
-    )
+    print("\nTest metrics:")
+    for metric, value in test_metrics.items():
+        print(f"{metric}: {value:.4f}")
 
 
 if __name__ == "__main__":

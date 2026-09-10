@@ -5,3 +5,4 @@ lightgbm
 matplotlib
 seaborn
 joblib
+jinja2
