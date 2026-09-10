@@ -140,6 +140,24 @@ churn/non-churn class.
 
 This makes the output suitable for ranking customers by relative retention risk.
 
+## How to Run
+
+For environment setup, dataset placement, dependency installation, and notebook execution instructions, see the
+**[Usage Guide](docs/usage.md)**.
+
+The project notebooks are located in:
+
+```text
+notebooks/
+├── 01_customer_retention_eda.ipynb
+└── 02_customer_retention_modeling.ipynb
+```
+
+Run the notebooks from top to bottom after completing the setup described in the usage guide.
+
+## Repository Structure
+
+```text
 ## Repository Structure
 
 ```text
@@ -150,6 +168,9 @@ customer-churn-risk-intelligence/
 │   └── processed/
 │
 ├── artifacts/
+│
+├── docs/
+│   └── usage.md
 │
 ├── notebooks/
 │   ├── 01_customer_retention_eda.ipynb
@@ -164,8 +185,9 @@ customer-churn-risk-intelligence/
 │   └── validate_data.py
 │
 ├── .gitignore
+├── LICENSE
 ├── README.md
-└── requirements.txt
+└── requirements.min.txt
 ```
 
 ## Key Design Considerations
