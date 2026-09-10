@@ -145,13 +145,15 @@ This makes the output suitable for ranking customers by relative retention risk.
 For environment setup, dataset placement, dependency installation, and notebook execution instructions, see the
 **[Usage Guide](docs/usage.md)**.
 
+For dataset provenance, structure, sources, and data-handling details, see the **[Data Documentation](docs/data.md)**.
+
 The project notebooks are located in:
 
 ```text
 notebooks/
 ├── 01_customer_retention_eda.ipynb
 └── 02_customer_retention_modeling.ipynb
-```
+````
 
 Run the notebooks from top to bottom after completing the setup described in the usage guide.
 
@@ -232,7 +234,7 @@ can support questions such as:
 
 * Which customers appear most vulnerable to churn?
 * What customer characteristics are associated with increased risk?
-* How does contract structure relate to retention?
+* How does the contract structure relate to retention?
 * Does service adoption provide useful predictive information?
 * How can churn probabilities be used to prioritize retention activity?
 

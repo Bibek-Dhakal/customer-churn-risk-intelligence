@@ -31,7 +31,12 @@ pip install -r requirements.min.txt
 
 ### 4. Add the dataset
 
-Place the required training and test datasets in:
+The project requires the source dataset to be available locally before running the notebooks.
+
+For the dataset source, column descriptions, folder structure, licensing information, and data preparation details, see
+the **[Data Documentation](data.md)**.
+
+Place the required files under:
 
 ```text
 data/
@@ -40,7 +45,7 @@ data/
     └── test.csv
 ```
 
-The dataset is not included in this repository.
+The raw dataset is not included in this repository.
 
 ### 5. Run the notebooks
 
