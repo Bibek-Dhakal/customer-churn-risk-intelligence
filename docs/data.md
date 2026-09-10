@@ -7,7 +7,7 @@ structure, preparation process, local folder organization, and data-handling con
 
 The project uses the Telco Customer Churn dataset.
 
-The source dataset is available through the Kaggle dataset commonly identified as **Telco Customer Churn** and
+The source dataset is available through the Kaggle dataset, commonly identified as **Telco Customer Churn** and
 attributed to BlastChar.
 
 The dataset is based on IBM's customer churn sample data.
@@ -15,7 +15,6 @@ The dataset is based on IBM's customer churn sample data.
 For the original dataset and source context, refer to:
 
 - [Kaggle — Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn)
-- [IBM — Telco Customer Churn sample data](https://community.ibm.com/community/user/businessanalytics/blogs/steven-macko/2019/07/11/telco-customer-churn-1113)
 
 The repository does not redistribute the original raw dataset.
 
