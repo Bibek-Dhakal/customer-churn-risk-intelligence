@@ -41,10 +41,10 @@ After activation, your terminal should indicate that the virtual environment is 
 
 ## 4. Install Dependencies
 
-Install the packages listed in `requirements.txt`:
+Install the packages listed in `requirements.min.txt`:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.min.txt
 ```
 
 The main dependencies include:
@@ -349,7 +349,7 @@ python -m pip install --upgrade pip
 Then reinstall the dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.min.txt
 ```
 
 ### Notebook cannot import `src`
