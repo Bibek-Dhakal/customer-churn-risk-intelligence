@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/Bibek-Dhakal/customer-churn-risk-intelligence/compare/1.1.0...1.1.1) (2026-09-19)
+
+
+### Documentation
+
+* **changelog:** add release history for v1.0.0 ([cb1191b](https://github.com/Bibek-Dhakal/customer-churn-risk-intelligence/commit/cb1191b6404841d8afd7e1a8b2ad34f5816bf160))
+
 ## [1.1.0](https://github.com/Bibek-Dhakal/customer-churn-risk-intelligence/compare/v1.0.0...1.1.0) (2026-09-19)
 
 ### Features
