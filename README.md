@@ -6,20 +6,25 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-An enterprise-grade Machine Learning pipeline designed to predict customer churn, evaluate model families via cross-validation, and deliver actionable risk segmentation through a real-time REST API.
+An enterprise-grade Machine Learning pipeline designed to predict customer churn, evaluate model families via
+cross-validation, and deliver actionable risk segmentation through a real-time REST API.
 
 ---
 
 ## 📌 Executive Summary
 
-Customer churn severely impacts Customer Lifetime Value (CLV) and recurring revenue models. This production-ready pipeline identifies at-risk users, analyzes primary churn drivers, and stratifies predictions into actionable risk tiers to optimize business interventions.
+Customer churn severely impacts Customer Lifetime Value (CLV) and recurring revenue models. This production-ready
+pipeline identifies at-risk users, analyzes primary churn drivers, and stratifies predictions into actionable risk tiers
+to optimize business interventions.
 
 * **Selected Model:** Logistic Regression
 * **Test Performance:** `0.8482 ROC-AUC` | `0.6670 PR-AUC` | `0.7374 Accuracy`
 * **Key Risk Factors:** Electronic check payments, short tenure (0–6 months), and elevated monthly charges.
 
 ### MLOps Infrastructure
+
 This project implements a robust **Data-Agnostic MLOps Core**:
+
 * **Data Contracts:** `Pandera` strictly enforces raw data schemas.
 * **Experiment Tracking:** `MLflow` logs hyperparameters, cross-validation metrics, and model artifacts.
 * **Secure Serialization:** Models are persisted using `Skops` to prevent arbitrary code execution vulnerabilities.
@@ -33,6 +38,7 @@ This project implements a robust **Data-Agnostic MLOps Core**:
 | Category              | Resource / Artifact Link                                                                           | Description                                                             |
 |:----------------------|:---------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------|
 | **Usage Guide**       | [`docs/usage.md`](docs/usage.md)                                                                   | Setup, testing, MLflow tracking, and Docker API serving                 |
+| **Architecture**      | [`docs/architecture.md`](docs/architecture.md)                                                     | High-level system design, MLOps pipeline flow, and component breakdown  |
 | **Code Quality**      | [`CODE_QUALITY.md`](CODE_QUALITY.md)                                                               | Formatting, linting (`Ruff`), and pre-commit hook guidelines            |
 | **Contributing**      | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                               | Instructions for pull requests, branching, and testing standards        |
 | **Dataset Details**   | [`docs/data.md`](docs/data.md)                                                                     | Data contracts, feature definitions, and target class distribution      |
@@ -104,6 +110,7 @@ mlflow ui
 ```bash
 uvicorn src.serve:app --reload --host 0.0.0.0 --port 8000
 ```
+
 Visit `http://localhost:8000/docs` to test predictions.
 
 ### 5. Serve via Docker
