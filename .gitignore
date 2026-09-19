@@ -33,6 +33,7 @@ mlruns/
 *.db
 mlflow.db
 *.sqlite
+.coverage
 
 # OS & Environment
 .DS_Store
