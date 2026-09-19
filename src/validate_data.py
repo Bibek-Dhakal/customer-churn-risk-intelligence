@@ -1,15 +1,16 @@
 from pathlib import Path
 
 import pandas as pd
+
 from src.schema import RawDataSchema
+
 
 def load_and_validate_data(data_path: Path) -> pd.DataFrame:
     """Load the raw customer churn dataset and validate its structure."""
 
     if not data_path.exists():
         raise FileNotFoundError(
-            f"Dataset not found at: {data_path}\n"
-            "Place the downloaded CSV inside data/raw/."
+            f"Dataset not found at: {data_path}\n" "Place the downloaded CSV inside data/raw/."
         )
 
     df = pd.read_csv(data_path)
@@ -31,17 +32,10 @@ def prepare_target(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
 
-    df["Churn"] = (
-        df["Churn"]
-        .astype(str)
-        .str.strip()
-        .map({"No": 0, "Yes": 1})
-    )
+    df["Churn"] = df["Churn"].astype(str).str.strip().map({"No": 0, "Yes": 1})
 
     if df["Churn"].isna().any():
-        raise ValueError(
-            "Unexpected values found in Churn column."
-        )
+        raise ValueError("Unexpected values found in Churn column.")
 
     return df
 
@@ -59,9 +53,7 @@ def prepare_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
     if df["TotalCharges"].isna().any():
         # Blank TotalCharges values occur for customers with very short tenure.
         # Fill them conservatively using MonthlyCharges.
-        df["TotalCharges"] = df["TotalCharges"].fillna(
-            df["MonthlyCharges"]
-        )
+        df["TotalCharges"] = df["TotalCharges"].fillna(df["MonthlyCharges"])
 
     return df
 

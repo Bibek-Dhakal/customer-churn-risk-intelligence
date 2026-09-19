@@ -41,11 +41,19 @@ After activation, your terminal should indicate that the virtual environment is 
 
 ## 4. Install Dependencies
 
-Install the core data science and enterprise MLOps packages (Pandera, MLflow, FastAPI, Pytest, Skops):
+Install the core data science and enterprise MLOps packages (Pandera, MLflow, FastAPI, Pytest, Skops) utilizing the modern `pyproject.toml` standard:
 
 ```bash
-pip install -r requirements.min.txt
+pip install -e ".[dev]"
 ```
+
+For maintaining code quality, also register the pre-commit hooks:
+
+```bash
+pre-commit install
+```
+
+*(Note: Create a `.env` file referencing `.env.example` if you need to configure external server or CORS variables).*
 
 ## 5. Dataset
 
@@ -71,7 +79,7 @@ The validation process utilizes **Pandera** to guarantee the incoming CSV aligns
 Validate that domain feature engineering (`src/features.py`) is working correctly by running the automated `pytest` suite:
 
 ```bash
-pytest tests/
+pytest
 ```
 
 ## 8. Run the Modeling Pipeline & Track with MLflow

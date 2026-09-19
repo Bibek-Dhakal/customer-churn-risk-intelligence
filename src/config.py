@@ -4,12 +4,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Data paths
-RAW_DATA_PATH = (
-        PROJECT_ROOT
-        / "data"
-        / "raw"
-        / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
-)
+RAW_DATA_PATH = PROJECT_ROOT / "data" / "raw" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
 
 # Output paths
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"

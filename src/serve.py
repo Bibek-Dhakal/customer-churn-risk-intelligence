@@ -16,7 +16,7 @@ from src.validate_data import prepare_numeric_columns
 app = FastAPI(
     title="Customer Churn Risk Intelligence API",
     description="Real-time churn risk prediction microservice.",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Attempt to load the pre-trained model artifact securely using skops
@@ -30,7 +30,10 @@ except Exception:
 def health_check():
     """Health check endpoint to ensure API and Model are operational."""
     if model is None:
-        return {"status": "degraded", "message": "Model artifact not found. Please run training pipeline."}
+        return {
+            "status": "degraded",
+            "message": "Model artifact not found. Please run training pipeline.",
+        }
     return {"status": "ok", "message": "Service is healthy and model is loaded."}
 
 
@@ -38,10 +41,7 @@ def health_check():
 def predict_churn(customer: CustomerFeatureInput):
     """Predict churn probability and assign a risk segment based on customer features."""
     if model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Model is not loaded. Train the model first."
-        )
+        raise HTTPException(status_code=503, detail="Model is not loaded. Train the model first.")
 
     try:
         # Convert Pydantic payload to Dictionary (handles both Pydantic v1 & v2 smoothly)
@@ -75,9 +75,8 @@ def predict_churn(customer: CustomerFeatureInput):
         return {
             "churn_probability": probability,
             "risk_segment": risk_segment,
-            "prediction_binary": int(probability >= 0.5)
+            "prediction_binary": int(probability >= 0.5),
         }
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
-   

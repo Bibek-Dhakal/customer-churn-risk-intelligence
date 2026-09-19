@@ -16,17 +16,13 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 def build_preprocessor(
-        X: pd.DataFrame,
+    X: pd.DataFrame,
 ) -> ColumnTransformer:
     """Build preprocessing for numerical and categorical features."""
 
-    numeric_features = X.select_dtypes(
-        include=["number"]
-    ).columns.tolist()
+    numeric_features = X.select_dtypes(include=["number"]).columns.tolist()
 
-    categorical_features = X.select_dtypes(
-        exclude=["number"]
-    ).columns.tolist()
+    categorical_features = X.select_dtypes(exclude=["number"]).columns.tolist()
 
     numeric_pipeline = Pipeline(
         steps=[
@@ -65,8 +61,8 @@ def build_preprocessor(
 
 
 def build_candidates(
-        X: pd.DataFrame,
-        random_state: int = 42,
+    X: pd.DataFrame,
+    random_state: int = 42,
 ) -> dict:
     """Build candidate churn classification pipelines."""
 
@@ -109,15 +105,13 @@ def build_candidates(
 
 
 def evaluate_predictions(
-        y_true,
-        probabilities,
-        threshold: float = 0.5,
+    y_true,
+    probabilities,
+    threshold: float = 0.5,
 ) -> dict:
     """Calculate model evaluation metrics."""
 
-    predictions = (
-            np.asarray(probabilities) >= threshold
-    ).astype(int)
+    predictions = (np.asarray(probabilities) >= threshold).astype(int)
 
     return {
         "ROC_AUC": roc_auc_score(y_true, probabilities),

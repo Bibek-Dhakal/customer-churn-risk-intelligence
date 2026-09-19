@@ -46,24 +46,20 @@ def main():
     # ------------------------------------------------------------------
     customer_ids = df[ID_COLUMN].copy()
 
-    X = df.drop(
-        columns=[TARGET_COLUMN, ID_COLUMN]
-    )
+    X = df.drop(columns=[TARGET_COLUMN, ID_COLUMN])
 
     y = df[TARGET_COLUMN]
 
     # ------------------------------------------------------------------
     # Reproducible stratified train/test split.
     # ------------------------------------------------------------------
-    X_train, X_test, y_train, y_test, ids_train, ids_test = (
-        train_test_split(
-            X,
-            y,
-            customer_ids,
-            test_size=TEST_SIZE,
-            stratify=y,
-            random_state=RANDOM_STATE,
-        )
+    X_train, X_test, y_train, y_test, ids_train, ids_test = train_test_split(
+        X,
+        y,
+        customer_ids,
+        test_size=TEST_SIZE,
+        stratify=y,
+        random_state=RANDOM_STATE,
     )
 
     # ------------------------------------------------------------------
@@ -94,7 +90,6 @@ def main():
     # ------------------------------------------------------------------
     mlflow.set_experiment("Customer-Churn-Risk-Intelligence")
     with mlflow.start_run(run_name="pipeline_training_and_evaluation"):
-
         mlflow.log_param("dataset", RAW_DATA_PATH.name)
         mlflow.log_param("random_state", RANDOM_STATE)
         mlflow.log_param("test_size", TEST_SIZE)
@@ -134,7 +129,9 @@ def main():
 
         # Log CV Results to MLflow
         for idx, row in comparison.iterrows():
-            mlflow.log_metric(f"{row['Model'].replace(' ', '_')}_CV_ROC_AUC", row["CV_ROC_AUC_Mean"])
+            mlflow.log_metric(
+                f"{row['Model'].replace(' ', '_')}_CV_ROC_AUC", row["CV_ROC_AUC_Mean"]
+            )
 
         # ------------------------------------------------------------------
         # Select the model with the strongest mean CV ROC-AUC.
@@ -161,7 +158,7 @@ def main():
         mlflow.sklearn.log_model(
             sk_model=best_model,
             artifact_path="best_churn_model",
-            skops_trusted_types=["numpy.dtype"]
+            skops_trusted_types=["numpy.dtype"],
         )
 
         # ------------------------------------------------------------------
@@ -197,10 +194,7 @@ def main():
             "cv_folds": CV_FOLDS,
             "target": TARGET_COLUMN,
             "selected_model": best_model_name,
-            "test_metrics": {
-                key: float(value)
-                for key, value in test_metrics.items()
-            },
+            "test_metrics": {key: float(value) for key, value in test_metrics.items()},
         }
 
         with open(RUN_METADATA_PATH, "w", encoding="utf-8") as file:
@@ -219,4 +213,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-   

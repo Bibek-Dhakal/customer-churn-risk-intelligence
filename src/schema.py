@@ -4,29 +4,32 @@ from pydantic import BaseModel, Field
 # ------------------------------------------------------------------
 # Pandera Schema: Enforces data contract on raw datasets
 # ------------------------------------------------------------------
-RawDataSchema = pa.DataFrameSchema({
-    "customerID": pa.Column(str, required=True),
-    "gender": pa.Column(str, checks=pa.Check.isin(["Male", "Female"])),
-    "SeniorCitizen": pa.Column(int, checks=pa.Check.isin([0, 1])),
-    "Partner": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
-    "Dependents": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
-    "tenure": pa.Column(int, checks=pa.Check.ge(0)),
-    "PhoneService": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
-    "MultipleLines": pa.Column(str),
-    "InternetService": pa.Column(str),
-    "OnlineSecurity": pa.Column(str),
-    "OnlineBackup": pa.Column(str),
-    "DeviceProtection": pa.Column(str),
-    "TechSupport": pa.Column(str),
-    "StreamingTV": pa.Column(str),
-    "StreamingMovies": pa.Column(str),
-    "Contract": pa.Column(str),
-    "PaperlessBilling": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
-    "PaymentMethod": pa.Column(str),
-    "MonthlyCharges": pa.Column(float, checks=pa.Check.ge(0)),
-    "TotalCharges": pa.Column(str, nullable=True),
-    "Churn": pa.Column(str, checks=pa.Check.isin(["Yes", "No"]), required=False)
-})
+RawDataSchema = pa.DataFrameSchema(
+    {
+        "customerID": pa.Column(str, required=True),
+        "gender": pa.Column(str, checks=pa.Check.isin(["Male", "Female"])),
+        "SeniorCitizen": pa.Column(int, checks=pa.Check.isin([0, 1])),
+        "Partner": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
+        "Dependents": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
+        "tenure": pa.Column(int, checks=pa.Check.ge(0)),
+        "PhoneService": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
+        "MultipleLines": pa.Column(str),
+        "InternetService": pa.Column(str),
+        "OnlineSecurity": pa.Column(str),
+        "OnlineBackup": pa.Column(str),
+        "DeviceProtection": pa.Column(str),
+        "TechSupport": pa.Column(str),
+        "StreamingTV": pa.Column(str),
+        "StreamingMovies": pa.Column(str),
+        "Contract": pa.Column(str),
+        "PaperlessBilling": pa.Column(str, checks=pa.Check.isin(["Yes", "No"])),
+        "PaymentMethod": pa.Column(str),
+        "MonthlyCharges": pa.Column(float, checks=pa.Check.ge(0)),
+        "TotalCharges": pa.Column(str, nullable=True),
+        "Churn": pa.Column(str, checks=pa.Check.isin(["Yes", "No"]), required=False),
+    }
+)
+
 
 # ------------------------------------------------------------------
 # Pydantic Schema: Enforces data contract for real-time API requests

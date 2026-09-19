@@ -1,6 +1,6 @@
 # 📊 Customer Churn Risk Intelligence
 
-![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)
 ![MLflow](https://img.shields.io/badge/MLflow-0194E2?style=flat&logo=mlflow)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker)
@@ -33,6 +33,8 @@ This project implements a robust **Data-Agnostic MLOps Core**:
 | Category              | Resource / Artifact Link                                                                           | Description                                                             |
 |:----------------------|:---------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------|
 | **Usage Guide**       | [`docs/usage.md`](docs/usage.md)                                                                   | Setup, testing, MLflow tracking, and Docker API serving                 |
+| **Code Quality**      | [`CODE_QUALITY.md`](CODE_QUALITY.md)                                                               | Formatting, linting (`Ruff`), and pre-commit hook guidelines            |
+| **Contributing**      | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                               | Instructions for pull requests, branching, and testing standards        |
 | **Dataset Details**   | [`docs/data.md`](docs/data.md)                                                                     | Data contracts, feature definitions, and target class distribution      |
 | **Pipeline Runs**     | [`docs/run_results.md`](docs/run_results.md)                                                       | Execution outputs, cross-validation tables, and run logs                |
 | **Project Roadmap**   | [`docs/future_roadmap.md`](docs/future_roadmap.md)                                                 | Technical backlog, threshold tuning, and optimization plans             |
@@ -76,13 +78,17 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1  # Windows PowerShell
 # source .venv/bin/activate # Linux/macOS
 
-pip install -r requirements.min.txt
+# Install package with development dependencies
+pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
 ```
 
 ### 2. Validate Data Contract & Run Tests
 
 ```bash
-pytest tests/
+pytest
 python -m src.validate_data
 ```
 
@@ -125,8 +131,9 @@ docker run -p 8000:8000 customer-churn-api
 │   ├── validate_data.py                          # Schema validation module
 │   └── serve.py                                  # FastAPI inference microservice
 ├── tests/                                        # Pytest unit tests for pipeline logic
-├── .github/workflows/                            # CI/CD pipelines
+├── pyproject.toml                                # Dependency and tool configuration (Ruff/Pytest)
 ├── Dockerfile                                    # API containerization config
-├── requirements.min.txt                          # Python dependencies
+├── CODE_QUALITY.md                               # Linting and pre-commit standards
+├── CONTRIBUTING.md                               # Contribution guidelines
 └── README.md                                     # Project main landing page
 ```

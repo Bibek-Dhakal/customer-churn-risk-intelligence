@@ -3,16 +3,29 @@ venv/
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.egg-info
+*.egg-info/
+*.egg-info
 
-.idea
-.vscode
+# IDE
+.idea/
+.vscode/
+.vscode-test/
+*.sublime-project
+*.sublime-workspace
 
+# Data
 data/raw/*
+!data/raw/.gitkeep
 data/processed/*
+!data/processed/.gitkeep
 
+# Artifacts
 artifacts/*
 !artifacts/.gitkeep
-mlruns
+mlruns/
 
 *.csv
 *.parquet
@@ -21,8 +34,11 @@ mlruns
 mlflow.db
 *.sqlite
 
+# OS & Environment
 .DS_Store
 Thumbs.db
 .env
+.env.local
+.env.*.local
 PATCH.md
 TODOS.md
