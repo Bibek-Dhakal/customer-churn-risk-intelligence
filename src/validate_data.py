@@ -1,31 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-
-EXPECTED_COLUMNS = [
-    "customerID",
-    "gender",
-    "SeniorCitizen",
-    "Partner",
-    "Dependents",
-    "tenure",
-    "PhoneService",
-    "MultipleLines",
-    "InternetService",
-    "OnlineSecurity",
-    "OnlineBackup",
-    "DeviceProtection",
-    "TechSupport",
-    "StreamingTV",
-    "StreamingMovies",
-    "Contract",
-    "PaperlessBilling",
-    "PaymentMethod",
-    "MonthlyCharges",
-    "TotalCharges",
-    "Churn",
-]
-
+from src.schema import RawDataSchema
 
 def load_and_validate_data(data_path: Path) -> pd.DataFrame:
     """Load the raw customer churn dataset and validate its structure."""
@@ -38,21 +14,14 @@ def load_and_validate_data(data_path: Path) -> pd.DataFrame:
 
     df = pd.read_csv(data_path)
 
-    missing_columns = [
-        column for column in EXPECTED_COLUMNS
-        if column not in df.columns
-    ]
-
-    if missing_columns:
-        raise ValueError(
-            f"Dataset is missing expected columns: {missing_columns}"
-        )
-
     if df.empty:
         raise ValueError("Dataset contains no rows.")
 
     if df["customerID"].duplicated().any():
         raise ValueError("Duplicate customerID values detected.")
+
+    # Apply strict declarative Pandera validation schema
+    RawDataSchema.validate(df)
 
     return df
 
@@ -112,7 +81,7 @@ if __name__ == "__main__":
 
     data = load_prepared_data(RAW_DATA_PATH)
 
-    print("Data validation successful.")
+    print("Data validation successful (Pandera Contract Enforced).")
     print(f"Rows: {data.shape[0]:,}")
     print(f"Columns: {data.shape[1]}")
     print(f"Churn rate: {data['Churn'].mean():.2%}")

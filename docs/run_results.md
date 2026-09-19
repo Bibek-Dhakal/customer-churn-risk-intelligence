@@ -1,23 +1,24 @@
 # Pipeline Execution & Experimentation Report
 
-This document records the data validation, exploratory data analysis (EDA), model cross-validation comparison, terminal
-logs, and test performance metadata for the **Customer Churn Risk Intelligence** pipeline.
+This document records the data validation, exploratory data analysis (EDA), model cross-validation comparison, terminal logs, and test performance metadata for the **Customer Churn Risk Intelligence** pipeline.
+
+*Note: As of v2, all experimental runs, hyperparameter sweeps, and cross-validation metrics are now automatically logged, versioned, and visualized dynamically via **MLflow**. The static outputs below represent a baseline historical snapshot.*
 
 ---
 
 ## 1. Terminal Execution Logs
 
-Executed via PowerShell 7.6.6 in the project virtual environment:
+Executed via PowerShell in the project virtual environment:
 
 ```text
 (.venv) PS D:\00-ml-projects\customer-churn-risk-intelligence> python -m src.validate_data
-Data validation successful.
+Data validation successful (Pandera Contract Enforced).
 Rows: 7,043
 Columns: 21
 Churn rate: 26.54%
 
 (.venv) PS D:\00-ml-projects\customer-churn-risk-intelligence> python -m src.train
-Training completed successfully.
+Training completed successfully. (Run tracked with MLflow)
 Dataset: WA_Fn-UseC_-Telco-Customer-Churn.csv
 Training rows: 5,634
 Test rows: 1,409
@@ -28,15 +29,13 @@ ROC_AUC: 0.8482
 Average_Precision: 0.6670
 Log_Loss: 0.4858
 Accuracy_At_0.5: 0.7374
-
 ```
 
 ---
 
 ## 2. Model Cross-Validation Results
 
-The pipeline evaluated three algorithm families across **5-Fold Stratified Cross-Validation** on the training set (5,634
-samples):
+The pipeline evaluated three algorithm families across **5-Fold Stratified Cross-Validation** on the training set (5,634 samples):
 
 | Model                   | Mean CV ROC-AUC | Std CV ROC-AUC | Mean CV Avg Precision | Mean CV Log Loss | Mean CV Accuracy |
 |-------------------------|-----------------|----------------|-----------------------|------------------|------------------|
@@ -46,10 +45,8 @@ samples):
 
 ### Selection Rationale & Interpretation
 
-* **Logistic Regression** achieved the highest **Mean CV ROC-AUC (0.8501)** and **Average Precision (0.6718)**, making
-  it the most robust candidate for probability-based risk ranking on imbalanced target data (26.54% churn).
-* While tree-based ensembles (Random Forest, LightGBM) yielded slightly higher raw accuracy at default threshold `0.5`,
-  Logistic Regression provided superior ranking sensitivity across varying risk thresholds.
+* **Logistic Regression** achieved the highest **Mean CV ROC-AUC (0.8501)** and **Average Precision (0.6718)**, making it the most robust candidate for probability-based risk ranking on imbalanced target data (26.54% churn).
+* While tree-based ensembles (Random Forest, LightGBM) yielded slightly higher raw accuracy at default threshold `0.5`, Logistic Regression provided superior ranking sensitivity across varying risk thresholds.
 
 ---
 
@@ -74,7 +71,6 @@ samples):
     "Accuracy_At_0.5": 0.7374024130589071
   }
 }
-
 ```
 
 ---
@@ -82,11 +78,6 @@ samples):
 ## 4. Key EDA & Visual Insights
 
 * **Target Class Imbalance:** **26.54%** churn rate across 7,043 total records (5,174 retained vs. 1,869 churned).
-* **Payment Method Vulnerability:** Customers using **Electronic check** experience the highest churn rate (>45%),
-  compared to ~15–19% for automated payments and mailed checks.
-* **Tenure Decay:** The **0–6 months tenure** band has a churn rate of **52.94%**, dropping steadily below **10%** for
-  customers in the **49–72 months** band.
-* **Monthly Charge Sensitivity:** Churned users show a significantly higher median monthly
-  cost (~$80) compared to retained users (~$65).
-
----
+* **Payment Method Vulnerability:** Customers using **Electronic check** experience the highest churn rate (>45%), compared to ~15–19% for automated payments and mailed checks.
+* **Tenure Decay:** The **0–6 months tenure** band has a churn rate of **52.94%**, dropping steadily below **10%** for customers in the **49–72 months** band.
+* **Monthly Charge Sensitivity:** Churned users show a significantly higher median monthly cost (~$80) compared to retained users (~$65).

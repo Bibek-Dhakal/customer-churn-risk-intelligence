@@ -1,7 +1,9 @@
 import json
 
-import joblib
+import mlflow
+import mlflow.sklearn
 import pandas as pd
+import skops.io as sio
 from sklearn.model_selection import (
     StratifiedKFold,
     cross_validate,
@@ -88,145 +90,133 @@ def main():
     results = []
 
     # ------------------------------------------------------------------
-    # Cross-validation model comparison.
+    # MLflow Setup & Experiment Tracking
     # ------------------------------------------------------------------
-    for name, pipeline in candidates.items():
-        cv_results = cross_validate(
-            pipeline,
-            X_train,
-            y_train,
-            cv=cv,
-            scoring=scoring,
-            n_jobs=-1,
+    mlflow.set_experiment("Customer-Churn-Risk-Intelligence")
+    with mlflow.start_run(run_name="pipeline_training_and_evaluation"):
+
+        mlflow.log_param("dataset", RAW_DATA_PATH.name)
+        mlflow.log_param("random_state", RANDOM_STATE)
+        mlflow.log_param("test_size", TEST_SIZE)
+        mlflow.log_param("cv_folds", CV_FOLDS)
+
+        # ------------------------------------------------------------------
+        # Cross-validation model comparison.
+        # ------------------------------------------------------------------
+        for name, pipeline in candidates.items():
+            cv_results = cross_validate(
+                pipeline,
+                X_train,
+                y_train,
+                cv=cv,
+                scoring=scoring,
+                n_jobs=-1,
+            )
+
+            results.append(
+                {
+                    "Model": name,
+                    "CV_ROC_AUC_Mean": cv_results["test_roc_auc"].mean(),
+                    "CV_ROC_AUC_Std": cv_results["test_roc_auc"].std(),
+                    "CV_Average_Precision_Mean": cv_results["test_average_precision"].mean(),
+                    "CV_Log_Loss_Mean": -cv_results["test_neg_log_loss"].mean(),
+                    "CV_Accuracy_Mean": cv_results["test_accuracy"].mean(),
+                }
+            )
+
+        comparison = (
+            pd.DataFrame(results)
+            .sort_values("CV_ROC_AUC_Mean", ascending=False)
+            .reset_index(drop=True)
         )
 
-        results.append(
+        comparison.to_csv(MODEL_COMPARISON_PATH, index=False)
+
+        # Log CV Results to MLflow
+        for idx, row in comparison.iterrows():
+            mlflow.log_metric(f"{row['Model'].replace(' ', '_')}_CV_ROC_AUC", row["CV_ROC_AUC_Mean"])
+
+        # ------------------------------------------------------------------
+        # Select the model with the strongest mean CV ROC-AUC.
+        # ------------------------------------------------------------------
+        best_model_name = comparison.iloc[0]["Model"]
+        best_model = candidates[best_model_name]
+
+        mlflow.log_param("selected_model", best_model_name)
+
+        best_model.fit(X_train, y_train)
+
+        # ------------------------------------------------------------------
+        # Evaluate on untouched test data.
+        # ------------------------------------------------------------------
+        test_probabilities = best_model.predict_proba(X_test)[:, 1]
+
+        test_metrics = evaluate_predictions(y_test, test_probabilities)
+
+        # Log Test Metrics to MLflow
+        for metric, value in test_metrics.items():
+            mlflow.log_metric(f"Test_{metric}", value)
+
+        # Register the Model in MLflow securely using skops
+        mlflow.sklearn.log_model(
+            sk_model=best_model,
+            artifact_path="best_churn_model",
+            skops_trusted_types=["numpy.dtype"]
+        )
+
+        # ------------------------------------------------------------------
+        # Save customer-level predictions.
+        # ------------------------------------------------------------------
+        predictions = pd.DataFrame(
             {
-                "Model": name,
-                "CV_ROC_AUC_Mean": cv_results[
-                    "test_roc_auc"
-                ].mean(),
-                "CV_ROC_AUC_Std": cv_results[
-                    "test_roc_auc"
-                ].std(),
-                "CV_Average_Precision_Mean": cv_results[
-                    "test_average_precision"
-                ].mean(),
-                "CV_Log_Loss_Mean": -cv_results[
-                    "test_neg_log_loss"
-                ].mean(),
-                "CV_Accuracy_Mean": cv_results[
-                    "test_accuracy"
-                ].mean(),
+                ID_COLUMN: ids_test.values,
+                "ActualChurn": y_test.values,
+                "ChurnProbability": test_probabilities,
+                "PredictedChurn": (test_probabilities >= 0.5).astype(int),
             }
         )
 
-    comparison = (
-        pd.DataFrame(results)
-        .sort_values(
-            "CV_ROC_AUC_Mean",
-            ascending=False,
-        )
-        .reset_index(drop=True)
-    )
+        predictions.to_csv(PREDICTIONS_PATH, index=False)
 
-    comparison.to_csv(
-        MODEL_COMPARISON_PATH,
-        index=False,
-    )
+        # ------------------------------------------------------------------
+        # Save selected model for direct API serving using secure skops format
+        # ------------------------------------------------------------------
+        sio.dump(best_model, SELECTED_MODEL_PATH)
 
-    # ------------------------------------------------------------------
-    # Select the model with the strongest mean CV ROC-AUC.
-    # ------------------------------------------------------------------
-    best_model_name = comparison.iloc[0]["Model"]
-
-    best_model = candidates[best_model_name]
-
-    best_model.fit(
-        X_train,
-        y_train,
-    )
-
-    # ------------------------------------------------------------------
-    # Evaluate on untouched test data.
-    # ------------------------------------------------------------------
-    test_probabilities = best_model.predict_proba(
-        X_test
-    )[:, 1]
-
-    test_metrics = evaluate_predictions(
-        y_test,
-        test_probabilities,
-    )
-
-    # ------------------------------------------------------------------
-    # Save customer-level predictions.
-    # ------------------------------------------------------------------
-    predictions = pd.DataFrame(
-        {
-            ID_COLUMN: ids_test.values,
-            "ActualChurn": y_test.values,
-            "ChurnProbability": test_probabilities,
-            "PredictedChurn": (
-                    test_probabilities >= 0.5
-            ).astype(int),
+        # ------------------------------------------------------------------
+        # Save run metadata.
+        # ------------------------------------------------------------------
+        metadata = {
+            "dataset": RAW_DATA_PATH.name,
+            "total_rows": int(df.shape[0]),
+            "total_columns": int(df.shape[1]),
+            "train_rows": int(X_train.shape[0]),
+            "test_rows": int(X_test.shape[0]),
+            "test_size": TEST_SIZE,
+            "random_state": RANDOM_STATE,
+            "cv_folds": CV_FOLDS,
+            "target": TARGET_COLUMN,
+            "selected_model": best_model_name,
+            "test_metrics": {
+                key: float(value)
+                for key, value in test_metrics.items()
+            },
         }
-    )
 
-    predictions.to_csv(
-        PREDICTIONS_PATH,
-        index=False,
-    )
+        with open(RUN_METADATA_PATH, "w", encoding="utf-8") as file:
+            json.dump(metadata, file, indent=2)
 
-    # ------------------------------------------------------------------
-    # Save selected model.
-    # ------------------------------------------------------------------
-    joblib.dump(
-        best_model,
-        SELECTED_MODEL_PATH,
-    )
+        print("\nTraining completed successfully. (Run tracked with MLflow)")
+        print(f"Dataset: {RAW_DATA_PATH.name}")
+        print(f"Training rows: {len(X_train):,}")
+        print(f"Test rows: {len(X_test):,}")
+        print(f"Selected model: {best_model_name}")
 
-    # ------------------------------------------------------------------
-    # Save run metadata.
-    # ------------------------------------------------------------------
-    metadata = {
-        "dataset": RAW_DATA_PATH.name,
-        "total_rows": int(df.shape[0]),
-        "total_columns": int(df.shape[1]),
-        "train_rows": int(X_train.shape[0]),
-        "test_rows": int(X_test.shape[0]),
-        "test_size": TEST_SIZE,
-        "random_state": RANDOM_STATE,
-        "cv_folds": CV_FOLDS,
-        "target": TARGET_COLUMN,
-        "selected_model": best_model_name,
-        "test_metrics": {
-            key: float(value)
-            for key, value in test_metrics.items()
-        },
-    }
-
-    with open(
-            RUN_METADATA_PATH,
-            "w",
-            encoding="utf-8",
-    ) as file:
-        json.dump(
-            metadata,
-            file,
-            indent=2,
-        )
-
-    print("\nTraining completed successfully.")
-    print(f"Dataset: {RAW_DATA_PATH.name}")
-    print(f"Training rows: {len(X_train):,}")
-    print(f"Test rows: {len(X_test):,}")
-    print(f"Selected model: {best_model_name}")
-
-    print("\nTest metrics:")
-    for metric, value in test_metrics.items():
-        print(f"{metric}: {value:.4f}")
+        print("\nTest metrics:")
+        for metric, value in test_metrics.items():
+            print(f"{metric}: {value:.4f}")
 
 
 if __name__ == "__main__":
     main()
+   

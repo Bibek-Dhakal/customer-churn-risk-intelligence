@@ -12,10 +12,14 @@ data/processed/*
 
 artifacts/*
 !artifacts/.gitkeep
+mlruns
 
 *.csv
 *.parquet
 *.joblib
+*.db
+mlflow.db
+*.sqlite
 
 .DS_Store
 Thumbs.db

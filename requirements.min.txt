@@ -6,3 +6,10 @@ matplotlib
 seaborn
 joblib
 jinja2
+pandera
+mlflow
+fastapi
+uvicorn
+pydantic
+pytest
+skops

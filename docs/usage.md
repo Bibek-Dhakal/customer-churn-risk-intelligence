@@ -1,6 +1,6 @@
 # Usage Guide
 
-This guide explains how to set up, validate, run, and explore the **Customer Churn Risk Intelligence** project.
+This guide explains how to set up, validate, run, track, and serve the **Customer Churn Risk Intelligence** project using its enterprise-grade MLOps stack.
 
 ## 1. Prerequisites
 
@@ -8,7 +8,7 @@ Recommended environment:
 
 * Python 3.10+
 * Git
-* Jupyter Notebook or JupyterLab
+* Docker (for containerization)
 
 The project is designed to run on Windows, macOS, and Linux.
 
@@ -41,44 +41,22 @@ After activation, your terminal should indicate that the virtual environment is 
 
 ## 4. Install Dependencies
 
-Install the packages listed in `requirements.min.txt`:
+Install the core data science and enterprise MLOps packages (Pandera, MLflow, FastAPI, Pytest, Skops):
 
 ```bash
 pip install -r requirements.min.txt
 ```
 
-The main dependencies include:
-
-* pandas
-* NumPy
-* scikit-learn
-* LightGBM
-* Matplotlib
-* joblib
-* Jupyter
-
 ## 5. Dataset
 
 The project requires the source Telco Customer Churn CSV.
-
 Place the downloaded dataset at:
 
 ```text
-data/
-└── raw/
-    └── WA_Fn-UseC_-Telco-Customer-Churn.csv
+data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv
 ```
 
-The project uses a **single source CSV**.
-
-You do not need to create separate `train.csv` and `test.csv` files.
-
-The modeling pipeline creates the train/test split programmatically.
-
-For dataset source, structure, licensing, preparation, and reproducibility details, see the *
-*[Data Documentation](data.md)**.
-
-## 6. Validate the Dataset
+## 6. Validate the Data Contract
 
 From the project root, run:
 
@@ -86,313 +64,76 @@ From the project root, run:
 python -m src.validate_data
 ```
 
-The validation process checks that:
+The validation process utilizes **Pandera** to guarantee the incoming CSV aligns with the explicit schema contract defined in `src/schema.py`, preventing silent failures in the pipeline.
 
-* The dataset exists.
-* Expected columns are present.
-* The dataset contains rows.
-* Customer IDs are unique.
-* The churn target contains expected values.
-* Numeric fields can be prepared for modeling.
+## 7. Run Unit Tests (CI/CD Safety)
 
-A successful run should print a validation confirmation together with dataset dimensions and the churn rate.
+Validate that domain feature engineering (`src/features.py`) is working correctly by running the automated `pytest` suite:
 
-## 7. Run the Modeling Pipeline
+```bash
+pytest tests/
+```
 
-Run:
+## 8. Run the Modeling Pipeline & Track with MLflow
+
+Execute the training pipeline:
 
 ```bash
 python -m src.train
 ```
 
-The training workflow performs the following steps:
+This workflow now automatically tracks executions using **MLflow**. The model is serialized securely using **Skops**, ensuring protection against arbitrary code execution vulnerabilities common in standard Pickle files.
 
-1. Loads the single source CSV.
-2. Validates and prepares the dataset.
-3. Converts the churn target to binary form.
-4. Converts `TotalCharges` to numeric.
-5. Creates engineered features.
-6. Separates the customer identifier from predictors.
-7. Creates a stratified train/test split.
-8. Builds candidate model pipelines.
-9. Runs stratified cross-validation.
-10. Compares candidate models.
-11. Selects the strongest model using mean CV ROC-AUC.
-12. Fits the selected model.
-13. Evaluates the model on the held-out test set.
-14. Generates customer-level churn probabilities.
-15. Saves model outputs and metadata.
-
-## 8. Generated Artifacts
-
-After successful training, the following files may appear under:
-
-```text
-artifacts/
-```
-
-### Model comparison
-
-```text
-artifacts/model_comparison.csv
-```
-
-Contains cross-validation results for the candidate models.
-
-### Predictions
-
-```text
-artifacts/predictions.csv
-```
-
-Contains predictions for customers in the held-out test set.
-
-Typical columns include:
-
-```text
-customerID
-ActualChurn
-ChurnProbability
-PredictedChurn
-```
-
-### Selected model
-
-```text
-artifacts/selected_model.joblib
-```
-
-Contains the fitted preprocessing and model pipeline.
-
-### Run metadata
-
-```text
-artifacts/run_metadata.json
-```
-
-Contains information such as:
-
-* Dataset name
-* Dataset dimensions
-* Training/test sizes
-* Random seed
-* Number of cross-validation folds
-* Selected model
-* Final test metrics
-
-## 9. Running the Notebooks
-
-The repository contains two notebooks.
-
-### Notebook 1 — Exploratory Data Analysis
-
-```text
-notebooks/01_customer_retention_eda.ipynb
-```
-
-This notebook examines:
-
-* Dataset structure
-* Data types
-* Missing values
-* Churn distribution
-* Contract characteristics
-* Payment methods
-* Internet services
-* Customer tenure
-* Monthly charges
-* Service adoption
-* Engineered features
-* Descriptive churn patterns
-
-### Notebook 2 — Modeling
-
-```text
-notebooks/02_customer_retention_modeling.ipynb
-```
-
-This notebook demonstrates:
-
-* Dataset preparation
-* Feature engineering
-* Stratified train/test splitting
-* Candidate model construction
-* Cross-validation
-* Model comparison
-* Best-model selection
-* Held-out test evaluation
-* Customer churn probabilities
-* Risk segmentation
-
-## 10. Start Jupyter
-
-From the project root:
+You can view hyperparameter configurations, validation metrics, and registered models through the local tracking UI:
 
 ```bash
-jupyter notebook
+mlflow ui
 ```
+Navigate to `http://localhost:5000` in your browser.
 
-or:
+## 9. Serve the Model (Real-Time FastAPI Endpoint)
+
+Once the model is trained and saved to `artifacts/selected_model.skops`, you can launch the live REST API:
 
 ```bash
-jupyter lab
+uvicorn src.serve:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open the notebooks under:
+* **Health Check:** `http://localhost:8000/health`
+* **Interactive API Docs:** Navigate to `http://localhost:8000/docs` to test the `/predict` endpoint via Swagger UI. The endpoint accepts a JSON payload corresponding to the Pydantic schema and returns the predicted churn probability and risk segment.
 
-```text
-notebooks/
+## 10. Run in Docker (Containerization)
+
+Package the serving API into an immutable, deployment-ready Docker image:
+
+```bash
+# Build the container
+docker build -t customer-churn-api .
+
+# Run the container
+docker run -p 8000:8000 customer-churn-api
 ```
 
-Run the cells from top to bottom.
+The containerized API will now be securely hosted and exposed on port `8000`.
 
-## 11. Notebook Imports
+## 11. Jupyter Notebooks
 
-The notebooks use project code from `src/`.
+For exploratory data analysis and visual walkthroughs, refer to the notebooks located in the repository:
 
-For example:
+**[Browse Notebooks Folder](../notebooks/)**
 
-```python
-from src.config import RAW_DATA_PATH
-from src.features import add_features
-from src.validate_data import load_prepared_data
-```
+* `01_customer_retention_eda.ipynb`
+* `02_customer_retention_modeling.ipynb`
 
-This keeps data preparation and feature logic centralized rather than duplicating the implementation across notebooks.
+The notebooks are intended for exploration and presentation. Because the project is modularized, the notebooks seamlessly utilize the `src/` modules, meaning the underlying Pandera data contracts and feature pipelines are applied automatically during your interactive sessions.
 
-## 12. Project Configuration
+## 12. Troubleshooting
 
-Core project settings are maintained in:
+### MLflow "Artifact Path Deprecated" Warning
+You may see a warning indicating `artifact_path is deprecated. Please use name instead.` This is a harmless warning originating internally from the MLflow library itself and can be ignored.
 
-```text
-src/config.py
-```
-
-Important settings include:
-
-```text
-TEST_SIZE = 0.20
-CV_FOLDS = 5
-RANDOM_STATE = 42
-```
-
-Changing these values changes the experimental configuration.
-
-For reproducible comparisons, keep the random state fixed.
-
-## 13. Evaluation Strategy
-
-ROC-AUC is the primary model-selection metric.
-
-The project also records:
-
-* Average Precision
-* Log Loss
-* Accuracy
-
-The model is selected using cross-validation on the training partition.
-
-The held-out test partition is reserved for final evaluation.
-
-## 14. Risk Segmentation
-
-The modeling notebook demonstrates four illustrative risk groups:
-
-```text
-Probability < 0.25      Low
-0.25 - <0.50            Moderate
-0.50 - <0.75            High
->= 0.75                 Very High
-```
-
-These thresholds are not production recommendations.
-
-In a real retention program, thresholds should be selected using business considerations such as:
-
-* Cost of contacting customers
-* Expected retention value
-* Available campaign capacity
-* False-positive costs
-* False-negative costs
-* Model calibration
-
-## 15. Troubleshooting
+### Untrusted Types / Numpy Exception
+If you see an error regarding `skops.io.exceptions.UntrustedTypesFoundException`, ensure you are using the provided `src.train` script. We explicitly whitelist safe types like `numpy.dtype` during Skops serialization.
 
 ### Dataset not found
-
-If you receive an error indicating that the dataset cannot be found, confirm that the file exists at:
-
-```text
-data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv
-```
-
-Also confirm that you are running commands from the project root.
-
-### Import errors
-
-If Python cannot import `src`, run commands from the repository root:
-
-```bash
-python -m src.validate_data
-```
-
-rather than executing source files directly.
-
-### LightGBM installation problems
-
-Try upgrading pip:
-
-```bash
-python -m pip install --upgrade pip
-```
-
-Then reinstall the dependencies:
-
-```bash
-pip install -r requirements.min.txt
-```
-
-### Notebook cannot import `src`
-
-Restart the notebook kernel and ensure the notebook is being run from the project repository.
-
-The notebooks also include project-root path handling to make imports more reliable.
-
-## 16. Reproducibility Checklist
-
-For a reproducible run:
-
-1. Use the documented source dataset.
-2. Keep the project configuration unchanged.
-3. Use the same Python dependency versions where possible.
-4. Keep `RANDOM_STATE = 42`.
-5. Run validation before training.
-6. Run the modeling pipeline from the project root.
-7. Record the generated metadata and model-comparison results.
-
-## 17. Recommended Execution Order
-
-For a fresh project setup:
-
-```text
-1. Download dataset
-        ↓
-2. Place CSV in data/raw/
-        ↓
-3. Create virtual environment
-        ↓
-4. Install requirements
-        ↓
-5. Run src.validate_data
-        ↓
-6. Run Notebook 01
-        ↓
-7. Run Notebook 02
-        ↓
-8. Run src.train
-        ↓
-9. Review artifacts
-```
-
-The notebooks are intended for exploration and presentation, while the reusable implementation under `src/` provides the
-project's core data and modeling workflow.
+If you receive an error indicating that the dataset cannot be found, confirm that the file exists at `data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv`.
