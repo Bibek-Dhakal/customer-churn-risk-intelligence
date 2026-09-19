@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/Bibek-Dhakal/customer-churn-risk-intelligence/compare/v1.1.0...v1.1.1) (2026-09-19)
+
+
+### Documentation
+
+* **architecture:** add system architecture diagram and MLOps breakdown ([55c60f4](https://github.com/Bibek-Dhakal/customer-churn-risk-intelligence/commit/55c60f46b811e7bd4c04fa66403390f59bc3ed4c))
+
 ## [1.1.0](https://github.com/Bibek-Dhakal/customer-churn-risk-intelligence/compare/v1.0.0...v1.1.0) (2026-09-19)
 
 
