@@ -1,6 +1,12 @@
+import warnings
+
 import pandas as pd
 import skops.io as sio
 from fastapi import FastAPI, HTTPException
+from sklearn.exceptions import InconsistentVersionWarning
+
+# Suppress sklearn version warnings commonly triggered across different environments (e.g., local vs Docker)
+warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 
 from src.config import SELECTED_MODEL_PATH
 from src.features import add_features
@@ -74,3 +80,4 @@ def predict_churn(customer: CustomerFeatureInput):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
+   
